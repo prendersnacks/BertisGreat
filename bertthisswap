@@ -6,7 +6,6 @@ import "./FlashLoanReceiverBase.sol";
 import "./Interfaces.sol";
 import "./Libraries.sol";
 
-
 interface IWETH is IERC20 {
     function deposit() external payable;
     function withdraw(uint) external;
@@ -18,7 +17,6 @@ contract FlashBotsMultiCallFL is FlashLoanReceiverBase {
     address private immutable executor;
     IWETH private constant WETH = IWETH(0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2);
     address private constant ETH_address = address(0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE);
-    address public constant uniswap = (0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D);
     
     modifier onlyExecutor() {
         require(msg.sender == executor);
@@ -53,7 +51,7 @@ contract FlashBotsMultiCallFL is FlashLoanReceiverBase {
         returns (bool)
     {
         uint amountOwing = amounts[0].add(premiums[0]);
-        uniswapWethFLParams(amounts[0], params, amountOwing);
+        uniswapWethFLParams(assets[0], amounts[0], params, amountOwing);
         WETH.approve(address(LENDING_POOL), amountOwing);
 
         return true;
@@ -85,7 +83,7 @@ contract FlashBotsMultiCallFL is FlashLoanReceiverBase {
         );
     }
 
-    function uniswapWethFLParams(uint256 _amountToFirstMarket, bytes memory _params, uint256 totalAaveDebt) internal {
+    function uniswapWethFLParams(address borrowedTokenAddress, uint256 _amountToFirstMarket, bytes memory _params, uint256 totalAaveDebt) internal {
         (uint256 _ethAmountToCoinbase, address[] memory _targets, bytes[] memory _payloads) = abi.decode(_params, (uint256, address[], bytes[]));
         require(_targets.length == _payloads.length); 
 
@@ -102,8 +100,7 @@ contract FlashBotsMultiCallFL is FlashLoanReceiverBase {
         require(
         IERC20(borrowedTokenAddress).approve(address(uniswap), tokenAmountout)
     );
-    
-        address[] memory path = new address[](2);
+        address [] memory path = new address[](2);
         path[0] = address(borrowedTokenAddress);
         path[1] = address(WETH);
         uint[] memory minOuts = uniswap.getAmountsOut(tokenAmountout, path);
@@ -123,8 +120,7 @@ contract FlashBotsMultiCallFL is FlashLoanReceiverBase {
     
     block.coinbase.transfer(_ethAmountToCoinbase);
     }
-
-
+    
     function call(address payable _to, uint256 _value, bytes calldata _data) external onlyOwner payable returns (bytes memory) {
         require(_to != address(0));
         (bool _success, bytes memory _result) = _to.call{value: _value}(_data);
