@@ -149,8 +149,7 @@ export class Arbitrage {
 	const pair = await Fetcher.fetchPairData(WETH, DAI[WETH.chainId])
 	const route = new Route([pair], DAI[WETH.chainId])
         console.log(route.midPrice.toSignificant(6)) //
-	console.log(route.midPrice.invert().toSignificant(6)) //
-	const 
+	const profitMinusFee2WETH = profitMinusFee(route.midPrice.toSignificant(6)) 
         const minerReward = profitMinusFee2WETH.mul(minerRewardPercentage).div(100);
         const profitMinusFeeMinusMinerReward = profitMinusFee2WETH.sub(minerReward)
         console.log("FL fee:", flashloanFee.toString())
