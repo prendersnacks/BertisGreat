@@ -5,7 +5,7 @@ import { DAI_ADDRESS } from "./addresses";
 import { EthMarket } from "./EthMarket";
 import { ETHER, bigNumberToDecimal } from "./utils";
 import { min } from "lodash";
-import { ChainId, Token, WETH, Fetcher, Route } from '@uniswap/sdk'
+import { ChainId, Token, Fetcher, Route } from '@uniswap/sdk'
 
 export interface CrossedMarketDetails {
   profit: BigNumber,
@@ -34,6 +34,15 @@ const TEST_VOLUMES = [
   ETHER.mul(88500),
   ETHER.mul(99000),
   ]
+const chainId = ChainId.MAINNET
+const WETH = new Token(
+  ChainId.MAINNET,
+  '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2',
+  18 ) 
+const DAI = new Token(
+  ChainId.MAINNET,
+  '0x6B175474E89094C44Da98b954EedeAC495271d0F',
+  18 ) 
 
 const flashloanFeePercentage = 9 // (0.09%) or 9/10000
 export function getBestCrossedMarket(crossedMarkets: Array<EthMarket>[], tokenAddress: string): CrossedMarketDetails | undefined {
@@ -143,13 +152,15 @@ export class Arbitrage {
       const payloads: Array<string> = [...buyCalls.data, sellCallData]
       const flashloanFee = bestCrossedMarket.volume.mul(flashloanFeePercentage).div(10000);
       const profitMinusFee = bestCrossedMarket.profit.sub(flashloanFee)
-      
+      const pair = await Fetcher.fetchPairData(
+  	DAI,
+  	WETH)
+	
+      const route = new Route([pair], DAI, WETH)
+      console.log(route.midPrice.toSignificant(6)) //
+      const profitMinusFee2WETH = profitMinusFee.mul(route.midPrice.toSignificant(6))
+
       try {
-        const WETH = new Token(ChainId.MAINNET, '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2', 18)
-	const pair = await Fetcher.fetchPairData(WETH, DAI[WETH.chainId])
-	const route = new Route([pair], DAI[WETH.chainId])
-        console.log(route.midPrice.toSignificant(6)) //
-	const profitMinusFee2WETH = profitMinusFee(route.midPrice.toSignificant(6)) 
         const minerReward = profitMinusFee2WETH.mul(minerRewardPercentage).div(100);
         const profitMinusFeeMinusMinerReward = profitMinusFee2WETH.sub(minerReward)
         console.log("FL fee:", flashloanFee.toString())
