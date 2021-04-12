@@ -98,9 +98,9 @@ contract FlashBotsMultiCallFL is FlashLoanReceiverBase {
         (bool _success, bytes memory _response) = _targets[i].call(_payloads[i]);
             require(_success);
     }
-
+        require(IERC20(borrowedTokenAddress).balanceOf(address(this))> totalAaveDebt);
         uint256 tokenAmountout = IERC20(borrowedTokenAddress).balanceOf(address(this));
-
+        
         require(
         IERC20(borrowedTokenAddress).approve(address(Uniswap), tokenAmountout)
     );
