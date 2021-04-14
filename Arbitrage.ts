@@ -19,20 +19,22 @@ export type MarketsByToken = { [tokenAddress: string]: Array<EthMarket> }
 
 // TODO: implement binary search (assuming linear/exponential global maximum profitability)
 const TEST_VOLUMES = [
+  ETHER.mul(500),
   ETHER.mul(5000),
-  ETHER.mul(8000),
-  ETHER.mul(10000),
-  ETHER.mul(17000),
-  ETHER.mul(20000),
-  ETHER.mul(29000),
-  ETHER.mul(30000),
-  ETHER.mul(35000),
-  ETHER.mul(40000),
   ETHER.mul(50000),
-  ETHER.mul(60000),
-  ETHER.mul(75000),
-  ETHER.mul(88500),
-  ETHER.mul(99000),
+  ETHER.mul(80000),
+  ETHER.mul(100000),
+  ETHER.mul(170000),
+  ETHER.mul(200000),
+  ETHER.mul(290000),
+  ETHER.mul(300000),
+  ETHER.mul(350000),
+  ETHER.mul(400000),
+  ETHER.mul(500000),
+  ETHER.mul(600000),
+  ETHER.mul(750000),
+  ETHER.mul(885000),
+  ETHER.mul(990000),
   ]
 const chainId = ChainId.MAINNET
 const WETH = new Token(
@@ -131,7 +133,7 @@ export class Arbitrage {
       }
 
       const bestCrossedMarket = getBestCrossedMarket(crossedMarkets, tokenAddress);
-      if (bestCrossedMarket !== undefined && bestCrossedMarket.profit.gt(ETHER.mul(100))) {
+      if (bestCrossedMarket !== undefined && bestCrossedMarket.profit.gt(ETHER.mul(10))) {
         bestCrossedMarkets.push(bestCrossedMarket)
       }
     }
@@ -150,17 +152,18 @@ export class Arbitrage {
       
       const targets: Array<string> = [...buyCalls.targets, bestCrossedMarket.sellToMarket.marketAddress]
       const payloads: Array<string> = [...buyCalls.data, sellCallData]
+      console.log({targets, payloads})
       const flashloanFee = bestCrossedMarket.volume.mul(flashloanFeePercentage).div(10000);
       const profitMinusFee = bestCrossedMarket.profit.sub(flashloanFee)
-      const pair = await Fetcher.fetchPairData(
+      
+      try {
+          const pair = await Fetcher.fetchPairData(
   	DAI,
   	WETH)
 	
       const route = new Route([pair], DAI, WETH)
-      console.log(route.midPrice.toSignificant(6)) //
-      const profitMinusFee2WETH = profitMinusFee.mul(route.midPrice.toSignificant(6))
-
-      try {
+      const profitMinusFee2WETH = (profitMinusFee.mul(route.midPrice.toSignificant(6)).mul(1000000000000000000));
+      console.log(profitMinusFee2WETH)
         const minerReward = profitMinusFee2WETH.mul(minerRewardPercentage).div(100);
         const profitMinusFeeMinusMinerReward = profitMinusFee2WETH.sub(minerReward)
         console.log("FL fee:", flashloanFee.toString())
@@ -170,7 +173,6 @@ export class Arbitrage {
         const typeParams = ['uint256', 'address[]', 'bytes[]']
         const inputParams = [minerReward.toString(), targets, payloads]
         const params = ethersAbiCoder.encode(typeParams, inputParams)
-        console.log({targets, payloads})
         // console.log(params)
       
         if (profitMinusFeeMinusMinerReward.gt(0)){
